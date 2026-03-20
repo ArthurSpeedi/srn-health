@@ -2,7 +2,7 @@
 /**
  * Plugin Name: SRN Health
  * Description: Un plugin SRN pour vérifier la santé du site.
- * Version: 0.3
+ * Version: 0.4
  * Author: Speedi Rychi Nylon
  */
 
