@@ -2,18 +2,27 @@
 /**
  * Plugin Name: SRN Health
  * Description: Un plugin SRN pour vérifier la santé du site.
- * Version: 0.2
+ * Version: 0.3
  * Author: Speedi Rychi Nylon
  */
 
-// require 'plugin-update-checker/plugin-update-checker.php';
-// use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
+// On charge la bibliothèque
+require __DIR__ . '/vendor/plugin-update-checker/plugin-update-checker.php';
+use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
 
-// $myUpdateChecker = PucFactory::buildUpdateChecker(
-// 	'https://github.com/votre-nom/votre-repo/',
-// 	__FILE__,
-// 	'nom-du-plugin'
-// );
+// On initialise le checker
+$myUpdateChecker = PucFactory::buildUpdateChecker(
+    'https://github.com/ArthurSpeedi/srn-health/', // URL de votre dépôt Git
+    __FILE__, // Chemin vers le fichier principal du plugin
+    'srn-health' // Le slug (nom du dossier du plugin)
+);
+
+// OPTIONNEL : Si votre repo GitHub est PRIVÉ, vous devez générer un 
+// "Personal Access Token" (Classic) sur GitHub et l'ajouter ici :
+// $myUpdateChecker->setAuthentication('votre_token_github_ici');
+
+// Forcer la branche (par défaut c'est 'master' ou 'main')
+$myUpdateChecker->setBranch('main');
 
 // Si votre repo est privé, vous pouvez ajouter un token d'accès :
 // $myUpdateChecker->setAuthentication('votre_token_github');
