@@ -2,12 +2,17 @@
 /**
  * Plugin Name: SRN Health
  * Description: Un plugin SRN pour vérifier la santé du site.
- * Version: 0.5
+ * Version: 0.6
  * Author: Speedi Rychi Nylon
  */
 
+// Chargement des fonctions utils et des classes php
+require_once __DIR__ . '/src/Utils/functions.php';
+
 // On charge la bibliothèque
 require __DIR__ . '/vendor/plugin-update-checker/plugin-update-checker.php';
+use Src\Services\VolumeService;
+use Src\Services\WordpressService;
 use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
 
 // On initialise le checker
@@ -38,6 +43,11 @@ add_action('rest_api_init', function () {
         'callback' => 'srn_health_reset_cache',
         'permission_callback' => 'check_dashboard_api_token'
     ));
+    register_rest_route('srn-health/v1', '/tree', array(
+        'methods' => 'GET',
+        'callback' => 'get_site_volume_tree',
+        'permission_callback' => 'check_dashboard_api_token'
+    ));
 });
 
 function check_dashboard_api_token(WP_REST_Request $request)
@@ -56,108 +66,34 @@ function check_dashboard_api_token(WP_REST_Request $request)
 
 function get_site_infos_for_dashboard()
 {
-    global $wp_version, $wpdb;
-
-    $cache_duration = HOUR_IN_SECONDS;
-
-    $plugin_data = get_plugin_data(__FILE__);
-
-    // Nombre de plugins à mettre à jour
-    // --- 1. Gestion des Plugins ---
-    $all_plugins = get_plugins(); // Nécessite wp-admin/includes/plugin.php si hors contexte admin
-    $active_plugins_slugs = get_option('active_plugins');
-    $update_plugins = get_site_transient('update_plugins');
-    
-    $plugins_list = [];
-    
-    foreach ($active_plugins_slugs as $plugin_path) {
-        if (isset($all_plugins[$plugin_path])) {
-            $info = $all_plugins[$plugin_path];
-            $has_update = isset($update_plugins->response[$plugin_path]);
-            
-            $plugins_list[] = [
-                'name'    => $info['Name'],
-                'version' => $info['Version'],
-                'update_available' => $has_update,
-                'new_version'      => $has_update ? $update_plugins->response[$plugin_path]->new_version : null
-            ];
-        }
-    }
-
-    // --- 2. Tailles (avec cache) ---
-    $db_size = get_transient('srn_health_db_size');
-    if ($db_size === false) {
-        $db_size = 0;
-        $tables = $wpdb->get_results("SHOW TABLE STATUS", ARRAY_A);
-        foreach ($tables as $table) {
-            $db_size += $table['Data_length'] + $table['Index_length'];
-        }
-        set_transient('srn_health_db_size', $db_size, $cache_duration);
-    }
-
-    $site_size = get_transient('srn_health_site_size');
-    if ($site_size === false) {
-        $site_size = srn_health_dir_size(ABSPATH);
-        set_transient('srn_health_site_size', $site_size, $cache_duration);
-    }
-
-    $count_posts = wp_count_posts();
+    global $wp_version;
 
     return array(
         'site_name' => wp_specialchars_decode(get_bloginfo('name'), ENT_QUOTES),
         'site_url' => get_bloginfo('url'),
         'wp_version' => $wp_version,
         'php_version' => phpversion(),
-        'srn_health_version' => $plugin_data['Version'],
-        'db_size' => $db_size,
-        'site_size' => $site_size,
+        'srn_health_version' => get_plugin_data(__FILE__)['Version'],
+        'db_size' => VolumeService::getDbSize(),
+        'db_overhead' => VolumeService::getOverheadSize(),
+        'site_size' => VolumeService::getSiteSize(),
         'active_theme' => get_stylesheet(),
-        'plugins' => $plugins_list,
-        'count_posts' => $count_posts->publish,
+        'plugins' => WordpressService::getPlugins(),
+        'count_posts' => wp_count_posts()->publish,
     );
 }
 
-function srn_health_dir_size($path)
+function get_site_volume_tree(WP_REST_Request $request)
 {
-    $size = 0;
-    $iterator = new RecursiveIteratorIterator(
-        new RecursiveDirectoryIterator($path, RecursiveDirectoryIterator::SKIP_DOTS),
-        RecursiveIteratorIterator::SELF_FIRST
-    );
-
-    // Définition des éléments à exclure (Duplicator et autres archives)
-    $exclude_patterns = [
-        'backups-dup-lite', // Dossier par défaut Duplicator
-        'wp-snapshots',     // Anciens dossiers Duplicator
-        '_archive.zip',     // Extension archive Duplicator
-        '_archive.daf',     // Format propriétaire Duplicator
-        '.tar.gz',          // Autres sauvegardes courantes
-        'node_modules'      // Pour nettoyer si tu as des restes de dev
-    ];
-
-    foreach ($iterator as $file) {
-        $file_path = $file->getRealPath();
-        
-        // Vérification de l'exclusion
-        $should_exclude = false;
-        foreach ($exclude_patterns as $pattern) {
-            if (strpos($file_path, $pattern) !== false) {
-                $should_exclude = true;
-                break;
-            }
-        }
-
-        if (!$should_exclude && $file->isFile()) {
-            $size += $file->getSize();
-        }
-    }
-    return $size;
+    $depth = (int) $request->get_param('depth');
+    $depth = ($depth > 0) ? $depth : 3;
+    $tree = VolumeService::getSiteVolumeTree($depth);
+    return $tree;
 }
 
 function srn_health_reset_cache()
 {
-    delete_transient('srn_health_db_size');
-    delete_transient('srn_health_site_size');
+    VolumeService::clearVolumeCache();
 
     return array('success' => true, 'message' => 'Cache vidé.');
 }

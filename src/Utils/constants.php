@@ -1,0 +1,3 @@
+<?php
+
+define("SRN_CACHE_DURATION", HOUR_IN_SECONDS);
