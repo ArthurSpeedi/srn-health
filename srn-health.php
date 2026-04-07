@@ -2,7 +2,7 @@
 /**
  * Plugin Name: SRN Health
  * Description: Un plugin SRN pour vérifier la santé du site.
- * Version: 0.7
+ * Version: 0.8
  * Author: Speedi Rychi Nylon
  */
 
@@ -80,6 +80,8 @@ function get_site_infos_for_dashboard()
         'active_theme' => get_stylesheet(),
         'plugins' => WordpressService::getPlugins(),
         'count_posts' => wp_count_posts()->publish,
+        'media_size' => VolumeService::getMediaLibrarySize(),
+        'is_self_update_enabled' => WordpressService::isSelfAutoUpdateEnabled()
     );
 }
 
@@ -97,3 +99,10 @@ function srn_health_reset_cache()
 
     return array('success' => true, 'message' => 'Cache vidé.');
 }
+
+/** 
+ * TODO
+ * - Statistique des posts
+ * - Statistique des médias
+ * - Is self Mise à jour automatique
+ */

@@ -120,6 +120,7 @@ class VolumeService
         delete_transient('srn_health_db_size');
         delete_transient('srn_health_site_size');
         delete_transient('srn_health_overhead_size');
+        delete_transient('srn_health_media_size');
     }
 
     /**
@@ -188,5 +189,21 @@ class VolumeService
         });
 
         return $tree;
+    }
+
+    /**
+     * Renvoi la taille de la médiathèque WordPress en octets
+     * 
+     * @return int La taille totale de la médiathèque en octets
+     */
+    public static function getMediaLibrarySize(): int
+    {
+        $media_size = get_transient('srn_health_media_size');
+        if ($media_size === false) {
+            $upload_dir = wp_upload_dir();
+            $media_size = self::srn_health_dir_size($upload_dir['basedir']);
+            set_transient('srn_health_media_size', $media_size, SRN_CACHE_DURATION);
+        }
+        return $media_size;
     }
 }

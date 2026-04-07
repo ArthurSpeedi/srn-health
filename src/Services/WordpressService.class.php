@@ -31,6 +31,9 @@ class WordpressService
                 ];
             }
         }
+
+        $plugins_list = array_values(array_unique($plugins_list, SORT_REGULAR));
+
         return $plugins_list;
     }
 
@@ -75,46 +78,17 @@ class WordpressService
     }
 
     /**
-     * Calcule et retourne la taille d'un répertoire
-     *
-     * @param string $path Le chemin du répertoire
-     * @return int La taille totale du répertoire en octets
+     * Retourne si le plugin est en mise à jour automatique
+     * 
+     * @return bool Vrai si la mise à jour automatique est activée, sinon faux
      */
-
-    private static function srn_health_dir_size($path)
+    public static function isSelfAutoUpdateEnabled(): bool
     {
-        $size = 0;
-        $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($path, RecursiveDirectoryIterator::SKIP_DOTS),
-            RecursiveIteratorIterator::SELF_FIRST
-        );
-
-        // Définition des éléments à exclure (Duplicator et autres archives)
-        $exclude_patterns = [
-            'backups-dup-lite', // Dossier par défaut Duplicator
-            'wp-snapshots',     // Anciens dossiers Duplicator
-            '_archive.zip',     // Extension archive Duplicator
-            '_archive.daf',     // Format propriétaire Duplicator
-            '.tar.gz',          // Autres sauvegardes courantes
-            'node_modules'      // Pour nettoyer si tu as des restes de dev
-        ];
-
-        foreach ($iterator as $file) {
-            $file_path = $file->getRealPath();
-
-            // Vérification de l'exclusion
-            $should_exclude = false;
-            foreach ($exclude_patterns as $pattern) {
-                if (strpos($file_path, $pattern) !== false) {
-                    $should_exclude = true;
-                    break;
-                }
-            }
-
-            if (!$should_exclude && $file->isFile()) {
-                $size += $file->getSize();
-            }
+        $auto_updates = get_site_option( 'auto_update_plugins', array() );
+        
+        if (in_array('srn-health/srn-health.php', $auto_updates)) {
+            return true;
         }
-        return $size;
+        return false;
     }
 }
