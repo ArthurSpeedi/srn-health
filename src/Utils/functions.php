@@ -1,7 +1,7 @@
 <?php
 
 // Définition du chemin vers le dossier "src", un niveau au-dessus de la racine du document
-$_SRC = __DIR__ . "./../../src/";
+$_SRC = __DIR__ . "/../../src/";
 
 // Charge les constantes du plugin
 require_once $_SRC . "Utils/constants.php";
