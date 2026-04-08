@@ -2,8 +2,11 @@
 /**
  * Plugin Name: SRN Health
  * Description: Un plugin SRN pour vérifier la santé du site.
- * Version: 0.8
+ * Version: 0.9
  * Author: Speedi Rychi Nylon
+ * Author URI: https://speedi.org/
+ * Text Domain: srn-health
+ * Domain Path: /languages
  */
 
 // Chargement des fonctions utils et des classes php
