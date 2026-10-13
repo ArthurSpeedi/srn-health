@@ -1,0 +1,16 @@
+meta {
+  name: Ping
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/wp-json/srn-health/v1/ping
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq ok
+}

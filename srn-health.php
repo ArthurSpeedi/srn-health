@@ -36,6 +36,11 @@ $myUpdateChecker->setBranch('main');
 // $myUpdateChecker->setAuthentication('votre_token_github');
 
 add_action('rest_api_init', function () {
+    register_rest_route('srn-health/v1', '/ping', array(
+        'methods' => 'GET',
+        'callback' => 'srn_health_ping',
+        'permission_callback' => 'check_dashboard_api_token'
+    ));
     register_rest_route('srn-health/v1', '/infos', array(
         'methods' => 'GET',
         'callback' => 'get_site_infos_for_dashboard',
@@ -66,6 +71,19 @@ function check_dashboard_api_token(WP_REST_Request $request)
     return true;
 }
 
+
+/**
+ * Route légère pour vérifier que le site répond et que le token est valide,
+ * sans les calculs de taille de /infos.
+ */
+function srn_health_ping()
+{
+    return array(
+        'status' => 'ok',
+        'srn_health_version' => get_plugin_data(SRN_HEALTH_PLUGIN_FILE, false, false)['Version'],
+        'timestamp' => time()
+    );
+}
 
 function get_site_infos_for_dashboard()
 {
