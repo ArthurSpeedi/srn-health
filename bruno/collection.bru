@@ -1,0 +1,14 @@
+headers {
+  X-SRN-Token: {{token}}
+}
+
+docs {
+  Routes de l'API REST du plugin SRN Health (`srn-health/v1`).
+
+  Toutes les routes exigent le header `X-SRN-Token`, qui doit correspondre à la constante
+  `SRN_HEALTH_TOKEN` définie dans le `wp-config.php` du site.
+
+  Configuration : sélectionner l'environnement `Local`, puis renseigner `token`
+  (variable secrète, stockée uniquement sur la machine, jamais dans les fichiers).
+  Pour une autre install locale, dupliquer l'environnement et changer `baseUrl`.
+}

@@ -1,0 +1,16 @@
+meta {
+  name: Reset cache
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/wp-json/srn-health/v1/reset-cache
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+}
