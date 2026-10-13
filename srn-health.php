@@ -84,7 +84,8 @@ function get_site_infos_for_dashboard()
         'plugins' => WordpressService::getPlugins(),
         'count_posts' => wp_count_posts()->publish,
         'media_size' => VolumeService::getMediaLibrarySize(),
-        'is_self_update_enabled' => WordpressService::isSelfAutoUpdateEnabled()
+        'is_self_update_enabled' => WordpressService::isSelfAutoUpdateEnabled(),
+        'site_health' => WordpressService::getSiteHealthSummary()
     );
 }
 
