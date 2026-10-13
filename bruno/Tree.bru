@@ -1,0 +1,23 @@
+meta {
+  name: Tree
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/wp-json/srn-health/v1/tree?depth=3
+  body: none
+  auth: none
+}
+
+params:query {
+  depth: 3
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  `depth` : profondeur de l'arborescence (défaut 3 si absent ou <= 0).
+}
