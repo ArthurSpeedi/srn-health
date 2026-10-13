@@ -10,6 +10,12 @@ Plugin personnalisé pour vérifier la santé du site. Propriété de Speedi Ryc
 
 == Changelog ==
 
+= 0.10.0 =
+* Ajout de la route /ping pour vérifier rapidement que le site répond et que le token est valide.
+* Ajout du résumé de l'outil "Santé du site" de WordPress dans /infos.
+* Correction de la détection de la mise à jour automatique lorsque le dossier du plugin est renommé.
+* Ajout d'une collection Bruno pour tester l'API en local.
+
 = 0.9 =
 * Ajout de la description du plugin.
 * Correction relative à la vérification de l'état de la mise à jour automatique.

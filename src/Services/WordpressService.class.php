@@ -86,9 +86,32 @@ class WordpressService
     {
         $auto_updates = get_site_option( 'auto_update_plugins', array() );
         
-        if (in_array('srn-health/srn-health.php', $auto_updates)) {
+        if (in_array(plugin_basename(SRN_HEALTH_PLUGIN_FILE), $auto_updates)) {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Retourne le résumé de l'outil "Santé du site" de WordPress
+     *
+     * WordPress enregistre ce résultat lors d'une visite de la page "Santé du site"
+     * ou lors de sa vérification hebdomadaire (cron). Il peut donc dater de quelques jours.
+     *
+     * @return array|null Le nombre de tests "good", "recommended" et "critical", ou null si aucun résultat n'est disponible
+     */
+    public static function getSiteHealthSummary(): ?array
+    {
+        $result = json_decode((string) get_transient('health-check-site-status-result'), true);
+
+        if (!is_array($result)) {
+            return null;
+        }
+
+        return [
+            'good' => (int) ($result['good'] ?? 0),
+            'recommended' => (int) ($result['recommended'] ?? 0),
+            'critical' => (int) ($result['critical'] ?? 0)
+        ];
     }
 }
