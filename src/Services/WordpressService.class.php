@@ -86,7 +86,7 @@ class WordpressService
     {
         $auto_updates = get_site_option( 'auto_update_plugins', array() );
         
-        if (in_array('srn-health/srn-health.php', $auto_updates)) {
+        if (in_array(plugin_basename(SRN_HEALTH_PLUGIN_FILE), $auto_updates)) {
             return true;
         }
         return false;
