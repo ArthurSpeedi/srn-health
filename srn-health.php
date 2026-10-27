@@ -39,41 +39,80 @@ add_action('rest_api_init', function () {
     register_rest_route('srn-health/v1', '/ping', array(
         'methods' => 'GET',
         'callback' => 'srn_health_ping',
-        'permission_callback' => 'check_dashboard_api_token'
+        'permission_callback' => 'check_dashboard_signature'
     ));
     register_rest_route('srn-health/v1', '/infos', array(
         'methods' => 'GET',
         'callback' => 'get_site_infos_for_dashboard',
-        'permission_callback' => 'check_dashboard_api_token'
+        'permission_callback' => 'check_dashboard_signature'
     ));
     register_rest_route('srn-health/v1', '/reset-cache', array(
         'methods' => 'POST',
         'callback' => 'srn_health_reset_cache',
-        'permission_callback' => 'check_dashboard_api_token'
+        'permission_callback' => 'check_dashboard_signature'
     ));
     register_rest_route('srn-health/v1', '/tree', array(
         'methods' => 'GET',
         'callback' => 'get_site_volume_tree',
-        'permission_callback' => 'check_dashboard_api_token'
+        'permission_callback' => 'check_dashboard_signature'
     ));
 });
 
-function check_dashboard_api_token(WP_REST_Request $request)
+/**
+ * Vérifie la signature Ed25519 envoyée par l'application Nuxt.
+ * Message signé : "horodatage|domaine|methode|route", domaine étant l'hôte de home_url(),
+ * pour qu'une signature ne serve qu'à une seule route et une seule méthode.
+ *
+ * @return bool true si la signature est valide, false sinon (jamais d'erreur fatale)
+ */
+function check_dashboard_signature(WP_REST_Request $request)
 {
-    if (!defined('SRN_HEALTH_TOKEN')) {
-        return new WP_Error('rest_forbidden', 'Token non configuré.', array('status' => 500));
+    $timestamp = $request->get_header('X-Horodatage');
+    $signature_b64 = $request->get_header('X-Signature');
+    if (!is_string($timestamp) || !is_string($signature_b64)) {
+        return false;
     }
 
-    $token = $request->get_header('X-SRN-Token');
-    if (empty($token) || !hash_equals(SRN_HEALTH_TOKEN, $token)) {
-        return new WP_Error('rest_forbidden', 'Accès refusé.', array('status' => 401));
+    // Horodatage Unix en secondes, uniquement des chiffres
+    if (!preg_match('/^\d{1,12}$/', $timestamp)) {
+        return false;
     }
-    return true;
+    if (abs(time() - (int) $timestamp) > SRN_HEALTH_SIGNATURE_MAX_AGE) {
+        return false;
+    }
+
+    $signature = base64_decode($signature_b64, true);
+    if ($signature === false || strlen($signature) !== 64) {
+        return false;
+    }
+
+    $public_key = base64_decode(SRN_HEALTH_PUBLIC_KEY, true);
+    if ($public_key === false || strlen($public_key) !== 32) {
+        return false;
+    }
+
+    $domain = wp_parse_url(home_url(), PHP_URL_HOST);
+    if (empty($domain)) {
+        return false;
+    }
+
+    if (!function_exists('sodium_crypto_sign_verify_detached')) {
+        return false;
+    }
+
+    $message = $timestamp . '|' . $domain . '|' . $request->get_method() . '|' . $request->get_route();
+
+    try {
+        return sodium_crypto_sign_verify_detached($signature, $message, $public_key);
+    } catch (\Throwable $e) {
+        // SodiumException (ou TypeError côté sodium_compat) : on refuse sans planter
+        return false;
+    }
 }
 
 
 /**
- * Route légère pour vérifier que le site répond et que le token est valide,
+ * Route légère pour vérifier que le site répond et que la signature est valide,
  * sans les calculs de taille de /infos.
  */
 function srn_health_ping()
