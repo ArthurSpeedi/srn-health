@@ -1,14 +1,55 @@
-headers {
-  X-SRN-Token: {{token}}
+script:pre-request {
+  // Signe chaque requête en Ed25519, comme le fait l'application Nuxt.
+  // Message signé : "horodatage|domaine|methode|route"
+  const crypto = require('crypto');
+
+  const privateKeyB64 = bru.getEnvVar('privateKey');
+  if (!privateKeyB64) {
+    throw new Error("Variable secrète `privateKey` non renseignée dans l'environnement.");
+  }
+
+  // Accepte une graine de 32 octets ou une clé secrète libsodium de 64 octets (graine + clé publique)
+  const rawKey = Buffer.from(privateKeyB64, 'base64');
+  if (rawKey.length !== 32 && rawKey.length !== 64) {
+    throw new Error('`privateKey` doit faire 32 ou 64 octets une fois décodée.');
+  }
+  const pkcs8Prefix = Buffer.from('302e020100300506032b657004220420', 'hex');
+  const privateKey = crypto.createPrivateKey({
+    key: Buffer.concat([pkcs8Prefix, rawKey.subarray(0, 32)]),
+    format: 'der',
+    type: 'pkcs8'
+  });
+
+  // L'URL peut encore contenir des variables non interpolées
+  const url = new URL(req.getUrl().replace(/\{\{(\w+)\}\}/g, (_, name) => bru.getEnvVar(name) ?? ''));
+  const domain = url.hostname;
+  const route = url.pathname.includes('/wp-json')
+    ? url.pathname.split('/wp-json')[1]
+    : url.searchParams.get('rest_route');
+  const method = req.getMethod().toUpperCase();
+  const timestamp = String(Math.floor(Date.now() / 1000));
+
+  const message = `${timestamp}|${domain}|${method}|${route}`;
+  const signature = crypto.sign(null, Buffer.from(message), privateKey).toString('base64');
+
+  req.setHeader('X-Horodatage', timestamp);
+  req.setHeader('X-Signature', signature);
 }
 
 docs {
   Routes de l'API REST du plugin SRN Health (`srn-health/v1`).
 
-  Toutes les routes exigent le header `X-SRN-Token`, qui doit correspondre à la constante
-  `SRN_HEALTH_TOKEN` définie dans le `wp-config.php` du site.
+  Toutes les routes exigent une signature Ed25519, vérifiée avec la clé publique
+  `SRN_HEALTH_PUBLIC_KEY` du plugin :
+  - `X-Horodatage` : timestamp Unix en secondes (écart max 300 s avec le serveur) ;
+  - `X-Signature` : signature base64 du message `horodatage|domaine|methode|route`.
 
-  Configuration : sélectionner l'environnement `Local`, puis renseigner `token`
-  (variable secrète, stockée uniquement sur la machine, jamais dans les fichiers).
+  Le script pre-request de la collection calcule ces headers automatiquement. Il utilise
+  le module `crypto` de Node : la collection doit être en mode **Developer** (pas Safe Mode).
+
+  Configuration : sélectionner l'environnement `Local`, puis renseigner `privateKey`
+  (clé privée Ed25519 en base64, 32 octets ou clé secrète libsodium de 64 octets ;
+  variable secrète, stockée uniquement sur la machine, jamais dans les fichiers).
   Pour une autre install locale, dupliquer l'environnement et changer `baseUrl`.
+  Le domaine signé est l'hôte de `baseUrl` : il doit correspondre à celui de `home_url()`.
 }
