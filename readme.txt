@@ -10,6 +10,12 @@ Plugin personnalisé pour vérifier la santé du site. Propriété de Speedi Ryc
 
 == Changelog ==
 
+= 0.11.0 =
+* Sécurité : l'accès à l'API se fait désormais par signature Ed25519 (en-têtes X-Horodatage et X-Signature) au lieu du token partagé. Le site ne contient plus aucun secret, seulement la clé publique.
+* La signature porte sur l'horodatage, le domaine, la méthode HTTP et la route : elle n'est valable que pour une seule route et une seule méthode, pendant 5 minutes.
+* La constante SRN_HEALTH_TOKEN du wp-config.php n'est plus utilisée et peut être supprimée.
+* Mise à jour de la collection Bruno pour signer les requêtes.
+
 = 0.10.0 =
 * Ajout de la route /ping pour vérifier rapidement que le site répond et que le token est valide.
 * Ajout du résumé de l'outil "Santé du site" de WordPress dans /infos.

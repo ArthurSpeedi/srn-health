@@ -1,0 +1,21 @@
+meta {
+  name: Infos - invalid signature
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/wp-json/srn-health/v1/infos
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // Exécuté après le script de la collection : on remplace la signature valide
+  // par 64 octets nuls, avec un horodatage valide pour tester uniquement la signature
+  req.setHeader('X-Signature', Buffer.alloc(64).toString('base64'));
+}
+
+assert {
+  res.status: eq 401
+}
